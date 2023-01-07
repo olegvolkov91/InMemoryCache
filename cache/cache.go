@@ -2,26 +2,37 @@ package cache
 
 import (
 	"fmt"
+	"sync"
+	"time"
 )
 
-type val interface{}
-
-type cache map[string]val
+type cache map[string]interface{}
 
 type LocalCache struct {
 	data cache
+	mu   *sync.RWMutex
 }
 
 func New() *LocalCache {
-	lc := LocalCache{data: make(cache)}
+	lc := LocalCache{data: make(cache), mu: new(sync.RWMutex)}
 	return &lc
 }
 
-func (lc *LocalCache) Set(key string, value val) {
-	lc.data[key] = value
+func cleanCache(key string, lc *LocalCache) func() {
+	return func() {
+		if _, ok := lc.Get(key); !ok {
+			return
+		}
+		lc.Delete(key)
+	}
 }
 
-func (lc *LocalCache) Get(key string) (val, bool) {
+func (lc *LocalCache) Set(key string, value interface{}, ttl time.Duration) {
+	lc.data[key] = value
+	time.AfterFunc(ttl, cleanCache(key, lc))
+}
+
+func (lc *LocalCache) Get(key string) (interface{}, bool) {
 	val, ok := lc.data[key]
 	if !ok {
 		return 0, false
