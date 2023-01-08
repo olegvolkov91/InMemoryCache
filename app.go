@@ -10,7 +10,7 @@ func main() {
 	key := "userId"
 	localCache := cache.New()
 
-	localCache.Set(key, 123, 5*time.Second)
+	localCache.Set(key, 123, 0*time.Second)
 
 	user, ok := localCache.Get(key)
 
@@ -26,7 +26,7 @@ func main() {
 	fmt.Println("LocalCache1", localCache)
 	// fmt.Println("LocalCache2", localCache2)
 
-	time.Sleep(time.Second * 7)
+	// time.Sleep(time.Second * 7)
 	_, ok = localCache.Get(key)
 
 	if !ok {

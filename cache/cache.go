@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -29,10 +28,15 @@ func cleanCache(key string, lc *LocalCache) func() {
 
 func (lc *LocalCache) Set(key string, value interface{}, ttl time.Duration) {
 	lc.data[key] = value
+
+	lc.mu.Lock()
 	time.AfterFunc(ttl, cleanCache(key, lc))
+	lc.mu.Unlock()
 }
 
 func (lc *LocalCache) Get(key string) (interface{}, bool) {
+	lc.mu.RLock()
+	defer lc.mu.RUnlock()
 	val, ok := lc.data[key]
 	if !ok {
 		return 0, false
@@ -41,10 +45,7 @@ func (lc *LocalCache) Get(key string) (interface{}, bool) {
 }
 
 func (lc *LocalCache) Delete(key string) {
-	_, ok := lc.data[key]
-	if !ok {
-		fmt.Printf("%s does not exists in cache", key)
-		return
-	}
+	lc.mu.Lock()
 	delete(lc.data, key)
+	lc.mu.Unlock()
 }
