@@ -7,37 +7,26 @@ import (
 )
 
 func main() {
-	key := "userId"
 	localCache := cache.New()
+	fmt.Println(localCache)
 
-	localCache.Set(key, 123, 5*time.Second)
+	localCache.Set("userName", "koteykin007", time.Second*5)
 
-	user, ok := localCache.Get(key)
+	fmt.Println(localCache)
 
-	if !ok {
-		fmt.Printf("%s such key does not exist in cache\n", key)
-		return
+	time.Sleep(time.Second * 3)
+
+	fmt.Println(localCache)
+
+	value, _ := localCache.Get("userName")
+
+	fmt.Println("userName value", value)
+
+	time.Sleep(time.Second * 3)
+
+	_, exists := localCache.Get("userName")
+
+	if !exists {
+		panic("Such key userName doesn't exists anymore")
 	}
-
-	fmt.Println(user)
-
-	// localCache2 := cache.New()
-
-	fmt.Println("LocalCache1", localCache)
-	// fmt.Println("LocalCache2", localCache2)
-
-	time.Sleep(time.Second * 7)
-	_, ok = localCache.Get(key)
-
-	if !ok {
-		fmt.Printf("%s such key does not exist in cache\n", key)
-		return
-	}
-	// fmt.Println("KEY STILL EXISTS", res)
-	// localCache.Delete(key)
-
-	// fmt.Println("LocalCache1 after deletion", localCache)
-
-	// check that both caches has different pointers
-	// fmt.Println(&localCache, &localCache2)
 }

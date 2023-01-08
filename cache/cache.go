@@ -1,50 +1,57 @@
 package cache
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
 
-type cache map[string]interface{}
+type cacheItemValue interface{}
 
-type LocalCache struct {
-	data cache
-	mu   *sync.RWMutex
+type CacheItem struct {
+	value      cacheItemValue
+	expiration time.Time
 }
 
-func New() *LocalCache {
-	lc := LocalCache{data: make(cache), mu: new(sync.RWMutex)}
-	return &lc
+type Cache struct {
+	storage map[string]CacheItem
+	sync    *sync.RWMutex
 }
 
-func cleanCache(key string, lc *LocalCache) func() {
-	return func() {
-		if _, ok := lc.Get(key); !ok {
-			return
+func New() Cache {
+	cache := Cache{
+		storage: make(map[string]CacheItem),
+		sync:    new(sync.RWMutex),
+	}
+	go cacheCleaner(&cache)
+	return cache
+}
+
+func (c Cache) Set(key string, value cacheItemValue, ttl time.Duration) {
+	c.storage[key] = CacheItem{
+		value:      value,
+		expiration: time.Now().Add(ttl),
+	}
+}
+
+func (c Cache) Get(key string) (cacheItemValue, bool) {
+	cacheItem, exists := c.storage[key]
+	return cacheItem.value, exists
+}
+
+func (c Cache) Delete(key string) {
+	delete(c.storage, key)
+}
+
+func cacheCleaner(cache *Cache) {
+	for {
+		for key, value := range cache.storage {
+			if isExpired(value.expiration) {
+				cache.Delete(key)
+			}
 		}
-		lc.Delete(key)
 	}
 }
 
-func (lc *LocalCache) Set(key string, value interface{}, ttl time.Duration) {
-	lc.data[key] = value
-	time.AfterFunc(ttl, cleanCache(key, lc))
-}
-
-func (lc *LocalCache) Get(key string) (interface{}, bool) {
-	val, ok := lc.data[key]
-	if !ok {
-		return 0, false
-	}
-	return val, true
-}
-
-func (lc *LocalCache) Delete(key string) {
-	_, ok := lc.data[key]
-	if !ok {
-		fmt.Printf("%s does not exists in cache", key)
-		return
-	}
-	delete(lc.data, key)
+func isExpired(expirationTime time.Time) bool {
+	return time.Now().After(expirationTime)
 }
